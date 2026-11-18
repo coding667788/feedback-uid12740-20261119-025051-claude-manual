@@ -1,0 +1,811 @@
+{
+  "schema_version": 1,
+  "error_codes": {
+    "E_IO": "输入文件无法读取或输出路径不可写",
+    "E_JSON": "输入不是合法 JSON，或顶层结构与声明的 schema 不符",
+    "E_SCHEMA": "字段缺失、类型错误、取值非法",
+    "E_DOMAIN": "端口、协议、服务/组/实例引用或区间声明不合法",
+    "E_DAG_CYCLE": "部署组依赖图存在环或引用了不存在的组",
+    "E_RULE": "规则选择器、动作或区间不合法，或规则 id 重复",
+    "E_INITIAL": "初始状态（无组切换）即违反必需/禁止连通性约束",
+    "E_FINAL": "全量目标状态违反必需/禁止连通性约束，计划不可能存在"
+  },
+  "results": [
+    {
+      "case_id": "01_mixed_version_exposure",
+      "groups": [
+        "db",
+        "web"
+      ],
+      "services": [
+        "web",
+        "db"
+      ],
+      "port_domain": [
+        1,
+        1024
+      ],
+      "initial_state_valid": true,
+      "final_state_valid": true,
+      "reachable_state_count": 3,
+      "reachable_states": [
+        {
+          "mask": 0,
+          "completed_groups": []
+        },
+        {
+          "mask": 1,
+          "completed_groups": [
+            "db"
+          ]
+        },
+        {
+          "mask": 3,
+          "completed_groups": [
+            "db",
+            "web"
+          ]
+        }
+      ],
+      "status": "plan_found",
+      "sequence": [
+        "db",
+        "web"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "switch_group": "db",
+          "state_before": [],
+          "state_after": [
+            "db"
+          ],
+          "pair_diffs": []
+        },
+        {
+          "step": 2,
+          "switch_group": "web",
+          "state_before": [
+            "db"
+          ],
+          "state_after": [
+            "db",
+            "web"
+          ],
+          "pair_diffs": [
+            {
+              "source_instance": "web-1",
+              "destination_instance": "db-1",
+              "protocol": "tcp",
+              "added": [
+                {
+                  "lo": 200,
+                  "hi": 300,
+                  "citations": [
+                    "new-db-in",
+                    "new-web-out"
+                  ]
+                }
+              ],
+              "removed": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "02_tie_rejection_no_plan",
+      "groups": [
+        "g1",
+        "g2"
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "port_domain": [
+        1,
+        1024
+      ],
+      "initial_state_valid": true,
+      "final_state_valid": true,
+      "reachable_state_count": 1,
+      "reachable_states": [
+        {
+          "mask": 0,
+          "completed_groups": []
+        }
+      ],
+      "status": "no_plan",
+      "best_reachable": {
+        "mask": 0,
+        "completed_groups": [],
+        "completed_count": 0
+      },
+      "next_step_blocks": [
+        {
+          "group": "g1",
+          "reachable": false,
+          "reason": "constraint",
+          "missing_prerequisites": [],
+          "violations": [
+            {
+              "constraint_id": "forbid-80",
+              "kind": "forbidden",
+              "protocol": "tcp",
+              "source_service": "svc-a",
+              "destination_service": "svc-b",
+              "source_instance": "a1",
+              "destination_instance": "b1",
+              "interval": [
+                80,
+                80
+              ],
+              "detail": "禁止连通区间 [80,80] 与实际许可相交"
+            }
+          ]
+        },
+        {
+          "group": "g2",
+          "reachable": false,
+          "reason": "constraint",
+          "missing_prerequisites": [],
+          "violations": [
+            {
+              "constraint_id": "forbid-81",
+              "kind": "forbidden",
+              "protocol": "tcp",
+              "source_service": "svc-a",
+              "destination_service": "svc-b",
+              "source_instance": "a1",
+              "destination_instance": "b1",
+              "interval": [
+                81,
+                81
+              ],
+              "detail": "禁止连通区间 [81,81] 与实际许可相交"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "03_local_step_to_dead_end",
+      "groups": [
+        "g1",
+        "g2",
+        "g3",
+        "g4"
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "port_domain": [
+        1,
+        1024
+      ],
+      "initial_state_valid": true,
+      "final_state_valid": true,
+      "reachable_state_count": 4,
+      "reachable_states": [
+        {
+          "mask": 0,
+          "completed_groups": []
+        },
+        {
+          "mask": 4,
+          "completed_groups": [
+            "g3"
+          ]
+        },
+        {
+          "mask": 8,
+          "completed_groups": [
+            "g4"
+          ]
+        },
+        {
+          "mask": 12,
+          "completed_groups": [
+            "g3",
+            "g4"
+          ]
+        }
+      ],
+      "status": "no_plan",
+      "best_reachable": {
+        "mask": 12,
+        "completed_groups": [
+          "g3",
+          "g4"
+        ],
+        "completed_count": 2
+      },
+      "next_step_blocks": [
+        {
+          "group": "g1",
+          "reachable": false,
+          "reason": "constraint",
+          "missing_prerequisites": [],
+          "violations": [
+            {
+              "constraint_id": "forbid-80",
+              "kind": "forbidden",
+              "protocol": "tcp",
+              "source_service": "svc-a",
+              "destination_service": "svc-b",
+              "source_instance": "a1",
+              "destination_instance": "b1",
+              "interval": [
+                80,
+                80
+              ],
+              "detail": "禁止连通区间 [80,80] 与实际许可相交"
+            }
+          ]
+        },
+        {
+          "group": "g2",
+          "reachable": false,
+          "reason": "constraint",
+          "missing_prerequisites": [],
+          "violations": [
+            {
+              "constraint_id": "forbid-81",
+              "kind": "forbidden",
+              "protocol": "tcp",
+              "source_service": "svc-a",
+              "destination_service": "svc-b",
+              "source_instance": "a1",
+              "destination_instance": "b1",
+              "interval": [
+                81,
+                81
+              ],
+              "detail": "禁止连通区间 [81,81] 与实际许可相交"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "04_flow_interruption_diff",
+      "groups": [
+        "gx",
+        "gy"
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "port_domain": [
+        1,
+        1024
+      ],
+      "initial_state_valid": true,
+      "final_state_valid": true,
+      "reachable_state_count": 4,
+      "reachable_states": [
+        {
+          "mask": 0,
+          "completed_groups": []
+        },
+        {
+          "mask": 1,
+          "completed_groups": [
+            "gx"
+          ]
+        },
+        {
+          "mask": 2,
+          "completed_groups": [
+            "gy"
+          ]
+        },
+        {
+          "mask": 3,
+          "completed_groups": [
+            "gx",
+            "gy"
+          ]
+        }
+      ],
+      "status": "plan_found",
+      "sequence": [
+        "gx",
+        "gy"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "switch_group": "gx",
+          "state_before": [],
+          "state_after": [
+            "gx"
+          ],
+          "pair_diffs": [
+            {
+              "source_instance": "a1",
+              "destination_instance": "b1",
+              "protocol": "tcp",
+              "added": [
+                {
+                  "lo": 300,
+                  "hi": 400,
+                  "citations": [
+                    "new-a-out-allow",
+                    "old-b-in"
+                  ]
+                }
+              ],
+              "removed": []
+            }
+          ]
+        },
+        {
+          "step": 2,
+          "switch_group": "gy",
+          "state_before": [
+            "gx"
+          ],
+          "state_after": [
+            "gx",
+            "gy"
+          ],
+          "pair_diffs": [
+            {
+              "source_instance": "a1",
+              "destination_instance": "b1",
+              "protocol": "tcp",
+              "added": [],
+              "removed": [
+                {
+                  "lo": 13,
+                  "hi": 79,
+                  "citations": [
+                    "new-a-out-allow",
+                    "old-b-in"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "05_single_endpoint_boundary",
+      "groups": [
+        "g0"
+      ],
+      "services": [
+        "solo"
+      ],
+      "port_domain": [
+        1,
+        100
+      ],
+      "initial_state_valid": true,
+      "final_state_valid": true,
+      "reachable_state_count": 2,
+      "reachable_states": [
+        {
+          "mask": 0,
+          "completed_groups": []
+        },
+        {
+          "mask": 1,
+          "completed_groups": [
+            "g0"
+          ]
+        }
+      ],
+      "status": "plan_found",
+      "sequence": [
+        "g0"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "switch_group": "g0",
+          "state_before": [],
+          "state_after": [
+            "g0"
+          ],
+          "pair_diffs": [
+            {
+              "source_instance": "solo-1",
+              "destination_instance": "solo-1",
+              "protocol": "tcp",
+              "added": [
+                {
+                  "lo": 51,
+                  "hi": 100,
+                  "citations": [
+                    "new-in-allow",
+                    "new-out-allow"
+                  ]
+                }
+              ],
+              "removed": [
+                {
+                  "lo": 24,
+                  "hi": 24,
+                  "citations": [
+                    "old-in-allow",
+                    "old-out-allow"
+                  ]
+                },
+                {
+                  "lo": 26,
+                  "hi": 26,
+                  "citations": [
+                    "old-in-allow",
+                    "old-out-allow"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "06_final_state_violation",
+      "groups": [
+        "g1",
+        "g2"
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "port_domain": [
+        1,
+        1024
+      ],
+      "initial_state_valid": true,
+      "final_state_valid": false,
+      "status": "error",
+      "error_code": "E_FINAL",
+      "violations": [
+        {
+          "constraint_id": "forbid-80",
+          "kind": "forbidden",
+          "protocol": "tcp",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "source_instance": "a1",
+          "destination_instance": "b1",
+          "interval": [
+            80,
+            80
+          ],
+          "detail": "禁止连通区间 [80,80] 与实际许可相交"
+        }
+      ]
+    },
+    {
+      "case_id": "07_initial_state_violation",
+      "groups": [
+        "g1"
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "port_domain": [
+        1,
+        1024
+      ],
+      "initial_state_valid": false,
+      "final_state_valid": true,
+      "status": "error",
+      "error_code": "E_INITIAL",
+      "violations": [
+        {
+          "constraint_id": "forbid-80",
+          "kind": "forbidden",
+          "protocol": "tcp",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "source_instance": "a1",
+          "destination_instance": "b1",
+          "interval": [
+            80,
+            80
+          ],
+          "detail": "禁止连通区间 [80,80] 与实际许可相交"
+        }
+      ]
+    },
+    {
+      "case_id": "08_dag_prerequisite_order",
+      "groups": [
+        "ga",
+        "gb",
+        "gc"
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "port_domain": [
+        1,
+        1024
+      ],
+      "initial_state_valid": true,
+      "final_state_valid": true,
+      "reachable_state_count": 6,
+      "reachable_states": [
+        {
+          "mask": 0,
+          "completed_groups": []
+        },
+        {
+          "mask": 2,
+          "completed_groups": [
+            "gb"
+          ]
+        },
+        {
+          "mask": 4,
+          "completed_groups": [
+            "gc"
+          ]
+        },
+        {
+          "mask": 5,
+          "completed_groups": [
+            "ga",
+            "gc"
+          ]
+        },
+        {
+          "mask": 6,
+          "completed_groups": [
+            "gb",
+            "gc"
+          ]
+        },
+        {
+          "mask": 7,
+          "completed_groups": [
+            "ga",
+            "gb",
+            "gc"
+          ]
+        }
+      ],
+      "status": "plan_found",
+      "sequence": [
+        "gb",
+        "gc",
+        "ga"
+      ],
+      "steps": [
+        {
+          "step": 1,
+          "switch_group": "gb",
+          "state_before": [],
+          "state_after": [
+            "gb"
+          ],
+          "pair_diffs": []
+        },
+        {
+          "step": 2,
+          "switch_group": "gc",
+          "state_before": [
+            "gb"
+          ],
+          "state_after": [
+            "gb",
+            "gc"
+          ],
+          "pair_diffs": []
+        },
+        {
+          "step": 3,
+          "switch_group": "ga",
+          "state_before": [
+            "gb",
+            "gc"
+          ],
+          "state_after": [
+            "ga",
+            "gb",
+            "gc"
+          ],
+          "pair_diffs": []
+        }
+      ]
+    },
+    {
+      "case_id": "09_dag_dependency_block_evidence",
+      "groups": [
+        "ga",
+        "gb",
+        "gc"
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "port_domain": [
+        1,
+        1024
+      ],
+      "initial_state_valid": true,
+      "final_state_valid": true,
+      "reachable_state_count": 1,
+      "reachable_states": [
+        {
+          "mask": 0,
+          "completed_groups": []
+        }
+      ],
+      "status": "no_plan",
+      "best_reachable": {
+        "mask": 0,
+        "completed_groups": [],
+        "completed_count": 0
+      },
+      "next_step_blocks": [
+        {
+          "group": "ga",
+          "reachable": false,
+          "reason": "dependency",
+          "missing_prerequisites": [
+            "gc"
+          ],
+          "violations": []
+        },
+        {
+          "group": "gb",
+          "reachable": false,
+          "reason": "constraint",
+          "missing_prerequisites": [],
+          "violations": [
+            {
+              "constraint_id": "forbid-81",
+              "kind": "forbidden",
+              "protocol": "tcp",
+              "source_service": "svc-a",
+              "destination_service": "svc-b",
+              "source_instance": "a1",
+              "destination_instance": "b1",
+              "interval": [
+                81,
+                81
+              ],
+              "detail": "禁止连通区间 [81,81] 与实际许可相交"
+            },
+            {
+              "constraint_id": "forbid-81",
+              "kind": "forbidden",
+              "protocol": "tcp",
+              "source_service": "svc-a",
+              "destination_service": "svc-b",
+              "source_instance": "c1",
+              "destination_instance": "b1",
+              "interval": [
+                81,
+                81
+              ],
+              "detail": "禁止连通区间 [81,81] 与实际许可相交"
+            }
+          ]
+        },
+        {
+          "group": "gc",
+          "reachable": false,
+          "reason": "constraint",
+          "missing_prerequisites": [],
+          "violations": [
+            {
+              "constraint_id": "forbid-80",
+              "kind": "forbidden",
+              "protocol": "tcp",
+              "source_service": "svc-a",
+              "destination_service": "svc-b",
+              "source_instance": "c1",
+              "destination_instance": "b1",
+              "interval": [
+                80,
+                80
+              ],
+              "detail": "禁止连通区间 [80,80] 与实际许可相交"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "10_dead_end_reason",
+      "groups": [
+        "ga",
+        "gb",
+        "gc"
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "port_domain": [
+        1,
+        1024
+      ],
+      "initial_state_valid": true,
+      "final_state_valid": true,
+      "reachable_state_count": 2,
+      "reachable_states": [
+        {
+          "mask": 0,
+          "completed_groups": []
+        },
+        {
+          "mask": 4,
+          "completed_groups": [
+            "gc"
+          ]
+        }
+      ],
+      "status": "no_plan",
+      "best_reachable": {
+        "mask": 4,
+        "completed_groups": [
+          "gc"
+        ],
+        "completed_count": 1
+      },
+      "next_step_blocks": [
+        {
+          "group": "ga",
+          "reachable": false,
+          "reason": "constraint",
+          "missing_prerequisites": [],
+          "violations": [
+            {
+              "constraint_id": "forbid-80",
+              "kind": "forbidden",
+              "protocol": "tcp",
+              "source_service": "svc-a",
+              "destination_service": "svc-b",
+              "source_instance": "a1",
+              "destination_instance": "b1",
+              "interval": [
+                80,
+                80
+              ],
+              "detail": "禁止连通区间 [80,80] 与实际许可相交"
+            }
+          ]
+        },
+        {
+          "group": "gb",
+          "reachable": false,
+          "reason": "constraint",
+          "missing_prerequisites": [],
+          "violations": [
+            {
+              "constraint_id": "forbid-81",
+              "kind": "forbidden",
+              "protocol": "tcp",
+              "source_service": "svc-a",
+              "destination_service": "svc-b",
+              "source_instance": "a1",
+              "destination_instance": "b1",
+              "interval": [
+                81,
+                81
+              ],
+              "detail": "禁止连通区间 [81,81] 与实际许可相交"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

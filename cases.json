@@ -1,0 +1,1636 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "01_mixed_version_exposure",
+      "comment": "db 先切保持 {10} 干净（合法）；web 先切会瞬时暴露 81（违规），故唯一合法顺序 db,web；目标态新增 200-300 永久许可，全过程区间表示。",
+      "port_domain": [
+        1,
+        1024
+      ],
+      "services": [
+        "web",
+        "db"
+      ],
+      "groups": [
+        "db",
+        "web"
+      ],
+      "instances": [
+        {
+          "id": "web-1",
+          "service": "web",
+          "group": "web",
+          "labels": [
+            "tier=front"
+          ]
+        },
+        {
+          "id": "db-1",
+          "service": "db",
+          "group": "db",
+          "labels": [
+            "tier=data"
+          ]
+        }
+      ],
+      "depends_on": {},
+      "rules": [
+        {
+          "id": "old-web-out",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "web"
+          },
+          "destination": {
+            "service": "db"
+          },
+          "ports": [
+            [
+              10,
+              10
+            ]
+          ]
+        },
+        {
+          "id": "new-web-out",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "web"
+          },
+          "destination": {
+            "service": "db"
+          },
+          "ports": [
+            [
+              10,
+              10
+            ],
+            [
+              81,
+              81
+            ],
+            [
+              200,
+              300
+            ]
+          ]
+        },
+        {
+          "id": "old-db-in",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "web"
+          },
+          "destination": {
+            "service": "db"
+          },
+          "ports": [
+            [
+              10,
+              10
+            ],
+            [
+              81,
+              81
+            ]
+          ]
+        },
+        {
+          "id": "new-db-in",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "web"
+          },
+          "destination": {
+            "service": "db"
+          },
+          "ports": [
+            [
+              10,
+              10
+            ],
+            [
+              200,
+              300
+            ]
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "id": "req-10",
+          "kind": "required",
+          "source_service": "web",
+          "destination_service": "db",
+          "protocol": "tcp",
+          "ports": [
+            [
+              10,
+              10
+            ]
+          ]
+        },
+        {
+          "id": "forbid-81",
+          "kind": "forbidden",
+          "source_service": "web",
+          "destination_service": "db",
+          "protocol": "tcp",
+          "ports": [
+            [
+              81,
+              81
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "02_tie_rejection_no_plan",
+      "comment": "两个组任一先切换都立即触发禁止端口（并列拒绝），初始态即死路，最佳状态完成 0 组。",
+      "port_domain": [
+        1,
+        1024
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "groups": [
+        "g1",
+        "g2"
+      ],
+      "instances": [
+        {
+          "id": "a1",
+          "service": "svc-a",
+          "group": "g1",
+          "labels": []
+        },
+        {
+          "id": "b1",
+          "service": "svc-b",
+          "group": "g2",
+          "labels": []
+        }
+      ],
+      "depends_on": {},
+      "rules": [
+        {
+          "id": "old-a-out-x",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              81,
+              81
+            ]
+          ]
+        },
+        {
+          "id": "new-a-out",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "old-b-in-x",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "new-b-in",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              81,
+              81
+            ]
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "id": "forbid-80",
+          "kind": "forbidden",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "forbid-81",
+          "kind": "forbidden",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              81,
+              81
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "03_local_step_to_dead_end",
+      "comment": "g3/g4 可自由切换；带 lock 标签的 a1/b1 构成等价锁，任一先切即违规，最佳状态完成 2 组（g3,g4）且锁无法推进。",
+      "port_domain": [
+        1,
+        1024
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "groups": [
+        "g1",
+        "g2",
+        "g3",
+        "g4"
+      ],
+      "instances": [
+        {
+          "id": "a1",
+          "service": "svc-a",
+          "group": "g1",
+          "labels": [
+            "lock"
+          ]
+        },
+        {
+          "id": "a2",
+          "service": "svc-a",
+          "group": "g3",
+          "labels": []
+        },
+        {
+          "id": "b1",
+          "service": "svc-b",
+          "group": "g2",
+          "labels": [
+            "lock"
+          ]
+        },
+        {
+          "id": "b2",
+          "service": "svc-b",
+          "group": "g4",
+          "labels": []
+        }
+      ],
+      "depends_on": {},
+      "rules": [
+        {
+          "id": "lock-old-out",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a",
+            "labels": [
+              "lock"
+            ]
+          },
+          "destination": {
+            "service": "svc-b",
+            "labels": [
+              "lock"
+            ]
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              81,
+              81
+            ]
+          ]
+        },
+        {
+          "id": "lock-new-out",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a",
+            "labels": [
+              "lock"
+            ]
+          },
+          "destination": {
+            "service": "svc-b",
+            "labels": [
+              "lock"
+            ]
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "lock-old-in",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a",
+            "labels": [
+              "lock"
+            ]
+          },
+          "destination": {
+            "service": "svc-b",
+            "labels": [
+              "lock"
+            ]
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "lock-new-in",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a",
+            "labels": [
+              "lock"
+            ]
+          },
+          "destination": {
+            "service": "svc-b",
+            "labels": [
+              "lock"
+            ]
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              81,
+              81
+            ]
+          ]
+        },
+        {
+          "id": "free-old-out",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              10
+            ]
+          ]
+        },
+        {
+          "id": "free-new-out",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              10
+            ]
+          ]
+        },
+        {
+          "id": "free-old-in",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              10
+            ]
+          ]
+        },
+        {
+          "id": "free-new-in",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              10
+            ]
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "id": "forbid-80",
+          "kind": "forbidden",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "forbid-81",
+          "kind": "forbidden",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              81,
+              81
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "04_flow_interruption_diff",
+      "comment": "gx 切换新增 300-400（出站扩区与旧入站相交生效）；gy 切换收回入站 13-79 造成断流；必保 10-12 全程连通，80-81 始终禁止。",
+      "port_domain": [
+        1,
+        1024
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "groups": [
+        "gx",
+        "gy"
+      ],
+      "instances": [
+        {
+          "id": "a1",
+          "service": "svc-a",
+          "group": "gx",
+          "labels": []
+        },
+        {
+          "id": "b1",
+          "service": "svc-b",
+          "group": "gy",
+          "labels": []
+        }
+      ],
+      "depends_on": {},
+      "rules": [
+        {
+          "id": "old-a-out",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              79
+            ]
+          ]
+        },
+        {
+          "id": "old-b-in",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              79
+            ],
+            [
+              300,
+              400
+            ]
+          ]
+        },
+        {
+          "id": "new-a-out-allow",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              79
+            ],
+            [
+              300,
+              400
+            ]
+          ]
+        },
+        {
+          "id": "new-a-out-deny",
+          "version": "new",
+          "action": "deny",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              80,
+              81
+            ]
+          ]
+        },
+        {
+          "id": "new-b-in",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              12
+            ],
+            [
+              300,
+              400
+            ]
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "id": "req-10-12",
+          "kind": "required",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              10,
+              12
+            ]
+          ]
+        },
+        {
+          "id": "forbid-80-81",
+          "kind": "forbidden",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              80,
+              81
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "05_single_endpoint_boundary",
+      "comment": "单实例自连接；闭区间边界 deny 25 与目标 deny [24,26]，验证区间端点与单端口边界。",
+      "port_domain": [
+        1,
+        100
+      ],
+      "services": [
+        "solo"
+      ],
+      "groups": [
+        "g0"
+      ],
+      "instances": [
+        {
+          "id": "solo-1",
+          "service": "solo",
+          "group": "g0",
+          "labels": [
+            "edge"
+          ]
+        }
+      ],
+      "depends_on": {},
+      "rules": [
+        {
+          "id": "old-out-allow",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              50
+            ]
+          ]
+        },
+        {
+          "id": "old-out-deny",
+          "version": "old",
+          "action": "deny",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              25,
+              25
+            ]
+          ]
+        },
+        {
+          "id": "old-in-allow",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              50
+            ]
+          ]
+        },
+        {
+          "id": "old-in-deny",
+          "version": "old",
+          "action": "deny",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              25,
+              25
+            ]
+          ]
+        },
+        {
+          "id": "new-out-allow",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              100
+            ]
+          ]
+        },
+        {
+          "id": "new-out-deny",
+          "version": "new",
+          "action": "deny",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              24,
+              26
+            ]
+          ]
+        },
+        {
+          "id": "new-in-allow",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              100
+            ]
+          ]
+        },
+        {
+          "id": "new-in-deny",
+          "version": "new",
+          "action": "deny",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              24,
+              26
+            ]
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "id": "req-self-1-2",
+          "kind": "required",
+          "source_service": "solo",
+          "destination_service": "solo",
+          "protocol": "tcp",
+          "ports": [
+            [
+              1,
+              2
+            ]
+          ]
+        },
+        {
+          "id": "forbid-self-25",
+          "kind": "forbidden",
+          "source_service": "solo",
+          "destination_service": "solo",
+          "protocol": "tcp",
+          "ports": [
+            [
+              25,
+              25
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "06_final_state_violation",
+      "comment": "全量目标态放行禁止端口 80，计划不可能存在，E_FINAL。",
+      "port_domain": [
+        1,
+        1024
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "groups": [
+        "g1",
+        "g2"
+      ],
+      "instances": [
+        {
+          "id": "a1",
+          "service": "svc-a",
+          "group": "g1",
+          "labels": []
+        },
+        {
+          "id": "b1",
+          "service": "svc-b",
+          "group": "g2",
+          "labels": []
+        }
+      ],
+      "depends_on": {},
+      "rules": [
+        {
+          "id": "new-a-out",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              100
+            ]
+          ]
+        },
+        {
+          "id": "new-b-in",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              100
+            ]
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "id": "forbid-80",
+          "kind": "forbidden",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              80,
+              80
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "07_initial_state_violation",
+      "comment": "初始旧规则即放行禁止端口 80，E_INITIAL。",
+      "port_domain": [
+        1,
+        1024
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "groups": [
+        "g1"
+      ],
+      "instances": [
+        {
+          "id": "a1",
+          "service": "svc-a",
+          "group": "g1",
+          "labels": []
+        },
+        {
+          "id": "b1",
+          "service": "svc-b",
+          "group": "g1",
+          "labels": []
+        }
+      ],
+      "depends_on": {},
+      "rules": [
+        {
+          "id": "old-a-out",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "old-b-in",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "new-a-out",
+          "version": "new",
+          "action": "deny",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              80,
+              80
+            ]
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "id": "forbid-80",
+          "kind": "forbidden",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              80,
+              80
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "08_dag_prerequisite_order",
+      "comment": "ga 依赖 gc；无约束时字典序最小序列为 gb,gc,ga。",
+      "port_domain": [
+        1,
+        1024
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "groups": [
+        "ga",
+        "gb",
+        "gc"
+      ],
+      "instances": [
+        {
+          "id": "a1",
+          "service": "svc-a",
+          "group": "ga",
+          "labels": []
+        },
+        {
+          "id": "b1",
+          "service": "svc-b",
+          "group": "gb",
+          "labels": []
+        },
+        {
+          "id": "c1",
+          "service": "svc-a",
+          "group": "gc",
+          "labels": []
+        }
+      ],
+      "depends_on": {
+        "ga": [
+          "gc"
+        ]
+      },
+      "rules": [
+        {
+          "id": "old-a-out",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              100
+            ]
+          ]
+        },
+        {
+          "id": "old-b-in",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              100
+            ]
+          ]
+        },
+        {
+          "id": "new-a-out",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              100
+            ]
+          ]
+        },
+        {
+          "id": "new-b-in",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              100
+            ]
+          ]
+        }
+      ],
+      "constraints": []
+    },
+    {
+      "case_id": "09_dag_dependency_block_evidence",
+      "comment": "ga 依赖 gc；gc/gb 等价锁互不可先切；最佳状态完成 0 组，ga 报 dependency、gb/gc 报 constraint。",
+      "port_domain": [
+        1,
+        1024
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "groups": [
+        "ga",
+        "gb",
+        "gc"
+      ],
+      "instances": [
+        {
+          "id": "a1",
+          "service": "svc-a",
+          "group": "ga",
+          "labels": []
+        },
+        {
+          "id": "b1",
+          "service": "svc-b",
+          "group": "gb",
+          "labels": []
+        },
+        {
+          "id": "c1",
+          "service": "svc-a",
+          "group": "gc",
+          "labels": []
+        }
+      ],
+      "depends_on": {
+        "ga": [
+          "gc"
+        ]
+      },
+      "rules": [
+        {
+          "id": "old-a-out-x",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              81,
+              81
+            ]
+          ]
+        },
+        {
+          "id": "new-a-out",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "old-b-in-x",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "new-b-in",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a"
+          },
+          "destination": {
+            "service": "svc-b"
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              81,
+              81
+            ]
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "id": "forbid-80",
+          "kind": "forbidden",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "forbid-81",
+          "kind": "forbidden",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              81,
+              81
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "10_dead_end_reason",
+      "comment": "gc 自由可切；锁对 a1/b1 用交叉覆盖，纯旧态与纯新态都干净、仅混合态暴露 80/81。切完 gc 后 ga/gb 单步仍直接违规(constraint)，无 dead_end；另见阻断原因覆盖。",
+      "port_domain": [
+        1,
+        1024
+      ],
+      "services": [
+        "svc-a",
+        "svc-b"
+      ],
+      "groups": [
+        "ga",
+        "gb",
+        "gc"
+      ],
+      "instances": [
+        {
+          "id": "a1",
+          "service": "svc-a",
+          "group": "ga",
+          "labels": [
+            "lock"
+          ]
+        },
+        {
+          "id": "b1",
+          "service": "svc-b",
+          "group": "gb",
+          "labels": [
+            "lock"
+          ]
+        },
+        {
+          "id": "c1",
+          "service": "svc-a",
+          "group": "gc",
+          "labels": []
+        }
+      ],
+      "depends_on": {},
+      "rules": [
+        {
+          "id": "lock-old-out",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a",
+            "labels": [
+              "lock"
+            ]
+          },
+          "destination": {
+            "service": "svc-b",
+            "labels": [
+              "lock"
+            ]
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              81,
+              81
+            ]
+          ]
+        },
+        {
+          "id": "lock-new-out",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": {
+            "service": "svc-a",
+            "labels": [
+              "lock"
+            ]
+          },
+          "destination": {
+            "service": "svc-b",
+            "labels": [
+              "lock"
+            ]
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "lock-old-in",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a",
+            "labels": [
+              "lock"
+            ]
+          },
+          "destination": {
+            "service": "svc-b",
+            "labels": [
+              "lock"
+            ]
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "lock-new-in",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": {
+            "service": "svc-a",
+            "labels": [
+              "lock"
+            ]
+          },
+          "destination": {
+            "service": "svc-b",
+            "labels": [
+              "lock"
+            ]
+          },
+          "ports": [
+            [
+              1,
+              10
+            ],
+            [
+              81,
+              81
+            ]
+          ]
+        },
+        {
+          "id": "free-old-out",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              10
+            ]
+          ]
+        },
+        {
+          "id": "free-new-out",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "outbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              10
+            ]
+          ]
+        },
+        {
+          "id": "free-old-in",
+          "version": "old",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              10
+            ]
+          ]
+        },
+        {
+          "id": "free-new-in",
+          "version": "new",
+          "action": "allow",
+          "protocol": "tcp",
+          "side": "inbound",
+          "source": "all",
+          "destination": "all",
+          "ports": [
+            [
+              1,
+              10
+            ]
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "id": "forbid-80",
+          "kind": "forbidden",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              80,
+              80
+            ]
+          ]
+        },
+        {
+          "id": "forbid-81",
+          "kind": "forbidden",
+          "source_service": "svc-a",
+          "destination_service": "svc-b",
+          "protocol": "tcp",
+          "ports": [
+            [
+              81,
+              81
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
